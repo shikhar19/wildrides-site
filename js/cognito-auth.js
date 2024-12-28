@@ -1,6 +1,7 @@
 /*global WildRydes _config AmazonCognitoIdentity AWSCognito*/
 
 var WildRydes = window.WildRydes || {};
+const crypto = require('crypto');
 
 (function scopeWrapper($) {
     var signinUrl = '/signin.html';
@@ -70,17 +71,27 @@ var WildRydes = window.WildRydes || {};
         );
     }
 
+    // Function to generate the secret hash
+function generateSecretHash(username, clientId, clientSecret) {
+    const message = username + clientId;
+    return crypto.createHmac('SHA256', clientSecret).update(message).digest('base64');
+}
+
     function signin(email, password, onSuccess, onFailure) {
+        const clientId = window._config.cognito.userPoolClientId;
+        const clientSecret = 'ak5gotn4kavv182ja3bbtkvmrrtiob7tb3k9om7aomhdm9fq20b'; // Replace with your actual client secret
+        const secretHash = generateSecretHash(toUsername(email), clientId, clientSecret);
         var authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails({
             Username: toUsername(email),
-            Password: password
+            Password: password,
+            SecretHash: secretHash
         });
 
         var cognitoUser = createCognitoUser(email);
-        cognitoUser.authenticateUser(authenticationDetails, {
-            onSuccess: onSuccess,
-            onFailure: onFailure
-        });
+    cognitoUser.authenticateUser(authenticationDetails, {
+        onSuccess: onSuccess,
+        onFailure: onFailure
+    });
     }
 
     function verify(email, code, onSuccess, onFailure) {
